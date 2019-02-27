@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	zmq "github.com/alecthomas/gozmq"
 )
@@ -25,7 +26,14 @@ func main() {
 		socket.Bind(connectionURL + portString)
 		for {
 			msg, _ := socket.Recv(0)
-			println("[Server] Got", string(msg))
+			recString := string(msg)
+			if recString != "" {
+				myFields := strings.Fields(recString)
+				println("[Server] Got", recString)
+				println("[Server] First Number", myFields[1])
+				println("[Server] Second Number", myFields[2])
+
+			}
 			socket.Send(msg, 0)
 		}
 	}
