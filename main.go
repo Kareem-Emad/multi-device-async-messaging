@@ -10,6 +10,75 @@ import (
 
 const connectionURL string = "tcp://127.0.0.1:"
 
+func QueryUser() {
+
+}
+
+func ServerSetup() {
+	var port int
+	println("[Server] What port to listen to?")
+	fmt.Scanf("%d", &port)
+
+	context, _ := zmq.NewContext()
+	socket, _ := context.NewSocket(zmq.REP)
+	portString := strconv.Itoa(port)
+	socket.Bind(connectionURL + portString)
+
+	for {
+		msg, _ := socket.Recv(0)
+		recString := string(msg)
+
+		if recString != "" {
+			//println("Here")
+			query := strings.Fields(recString)
+			l, _ := strconv.Atoi(query[1])
+			r, _ := strconv.Atoi(query[2])
+			sum := ((l + r) / 2) * (r - l + 1)
+			res := fmt.Sprintf("Sum = %d", sum)
+			fmt.Printf("Sum of numbers in [%d, %d] = %d\n", l, r, sum)
+			socket.Send([]byte(res), 0)
+		} else {
+			socket.Send(msg, 0)
+		}
+	}
+}
+
+func ClinetSetup() {
+	context, _ := zmq.NewContext()
+	socket, _ := context.NewSocket(zmq.REQ)
+
+	var port int
+	println("[Client] What port(s) to listen at ?(Enter -1 to skip after entering first port)")
+
+	fmt.Scanf("%d", &port)
+	portString := strconv.Itoa(port)
+	socket.Connect(connectionURL + portString)
+
+	for port != -1 {
+		fmt.Scanf("%d", &port)
+		portString = strconv.Itoa(port)
+		socket.Connect(connectionURL + portString)
+	}
+
+	//socket.Send([]byte(""), 0)
+
+	var idxStart, idxEnd int
+
+	for {
+		fmt.Println("[Client] What indicies to send to process?")
+		fmt.Scanf("%d %d", &idxStart, &idxEnd)
+		println("[Client] Preparing")
+
+		msg := fmt.Sprintf("msg %d %d", idxStart, idxEnd)
+		socket.Send([]byte(msg), 0)
+		println("[Client] Sending", msg)
+
+		recievedMsg, _ := socket.Recv(0)
+
+		fmt.Println(string(recievedMsg))
+	}
+}
+
 func main() {
 
 	var cs string
@@ -17,57 +86,11 @@ func main() {
 	fmt.Scanf("%s", &cs)
 
 	if cs == "s" {
-		var port int
-		println("[Server] What port to listen at ?")
-		fmt.Scanf("%d", &port)
-		context, _ := zmq.NewContext()
-		socket, _ := context.NewSocket(zmq.REQ)
-		portString := strconv.Itoa(port)
-		socket.Bind(connectionURL + portString)
-		for {
-			msg, _ := socket.Recv(0)
-			recString := string(msg)
-			if recString != "" {
-				myFields := strings.Fields(recString)
-				println("[Server] Got", recString)
-				println("[Server] First Number", myFields[1])
-				println("[Server] Second Number", myFields[2])
-
-			}
-			socket.Send(msg, 0)
-		}
+		ServerSetup()
 	}
 
 	if cs == "c" {
-		context, _ := zmq.NewContext()
-		socket, _ := context.NewSocket(zmq.REQ)
-
-		var port int
-		println("[Client] What port(s) to listen at ?(Enter -1 to skip after entering first port)")
-
-		fmt.Scanf("%d", &port)
-		portString := strconv.Itoa(port)
-		socket.Connect(connectionURL + portString)
-
-		for port != -1 {
-			fmt.Scanf("%d", &port)
-			portString = strconv.Itoa(port)
-			socket.Connect(connectionURL + portString)
-		}
-
-		var idxStart, idxEnd int
-
-		for {
-			fmt.Println("[Client] What indicies to send to process ?")
-			fmt.Scanf("%d %d", &idxStart, &idxEnd)
-			println("[Client] Preparing")
-
-			msg := fmt.Sprintf("msg %d %d", idxStart, idxEnd)
-			socket.Send([]byte(msg), 0)
-			println("[Client] Sending", msg)
-			socket.Recv(0)
-		}
-
+		ClinetSetup()
 	}
 
 	fmt.Println("Msh na2sa habal 3al sobh ya 3m enta :V")
